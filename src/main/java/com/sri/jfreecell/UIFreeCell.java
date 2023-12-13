@@ -44,7 +44,6 @@ public class UIFreeCell extends JFrame {
 
     public static final String version = "5.2.10";
 
-    private UICardPanel boardDisplay;
     private JLabel cardCount;
 
     private static final int PORT = 6789;
@@ -52,11 +51,7 @@ public class UIFreeCell extends JFrame {
 
     public static void main(String[] args) {
         checkIfRunning();
-        try {
-            UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        checkLoadWindowsStyle();
 
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
@@ -65,9 +60,19 @@ public class UIFreeCell extends JFrame {
         });
     }
 
+    private static void checkLoadWindowsStyle() {
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            try {
+                UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public UIFreeCell() {
         checkAndLoadGame();
-        boardDisplay = new UICardPanel(model);
+        UICardPanel boardDisplay = new UICardPanel(model);
         model.addGameListener(new GameListenerImpl(this));
 
         cardCount = new JLabel("52 ", SwingConstants.RIGHT);

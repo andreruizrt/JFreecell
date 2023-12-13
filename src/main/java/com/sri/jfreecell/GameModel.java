@@ -147,6 +147,14 @@ public class GameModel implements Iterable<CardPile>, Serializable {
    }
 
    public boolean moveFromPileToPile(Card card, CardPile source, CardPile target) {
+      if (source instanceof CardPileTableau ) {
+         int cascadesSize = ( ( CardPileTableau ) source ).getCascadesSize();
+
+         if (!target.isAllowedToAddCardCascade( cascadesSize ) ) {
+            return false;
+         }
+      }
+
       if (card.equals(source.peekTop())) {
          return moveCard(source, target);
       } else {
@@ -162,6 +170,30 @@ public class GameModel implements Iterable<CardPile>, Serializable {
       return false;
    }
 
+   private boolean moveCardsToFoundation(CardPile[] piles, int[] minval) {
+      boolean moveHappened = false;
+      for (CardPile pile : piles) {
+         if (pile.size() == 0) {
+            continue;
+         }
+         Card c = pile.peekTop();
+         int ord = c.getFace().ordinal();
+         if (c.getSuit().getColor().equals(Color.RED)) {
+            if (ord > minval[0] && ord > 1) {
+               continue;
+            }
+         } else if ( ord > minval[1] && ord > 1 ) {
+               continue;
+         }
+         if (moveToFoundationPile(pile)) {
+            minval = getMinEligibleOrdinals();
+            moveHappened = true;
+            noOfAutoMoves++;
+         }
+      }
+      return moveHappened;
+   }
+
    /**
     * If auto complete is enable, it checks and move the eligible cards from
     * Tableau and FreeCell Piles to Foundation Pile.
@@ -173,55 +205,17 @@ public class GameModel implements Iterable<CardPile>, Serializable {
       }
 
       boolean moveHappened;
-      int ord;
       int[] minval = getMinEligibleOrdinals();
-      Card c;
-      do {
-         moveHappened = false;
-         for (CardPile pile : getTableauPiles()) {
-            if (pile.size() == 0) {
-               continue;
-            }
-            c = pile.peekTop();
-            ord = c.getFace().ordinal();
-            if (c.getSuit().getColor().equals(Color.RED)) {
-               if (ord > minval[0] && ord > 1) {
-                  continue;
-               }
-            } else {
-               if (ord > minval[1] && ord > 1) {
-                  continue;
-               }
-            }
-            if (moveToFoundationPile(pile)) {
-               minval = getMinEligibleOrdinals();
-               moveHappened = true;
-               noOfAutoMoves++;
-            }
-         }
 
-         for (CardPile pile : getFreeCellPiles()) {
-            if (pile.size() == 0) {
-               continue;
-            }
-            c = pile.peekTop();
-            ord = c.getFace().ordinal();
-            if (c.getSuit().getColor().equals(Color.RED)) {
-               if (ord > minval[0] && ord > 1) {
-                  continue;
-               }
-            } else {
-               if (ord > minval[1] && ord > 1) {
-                  continue;
-               }
-            }
-            if (moveToFoundationPile(pile)) {
-               minval = getMinEligibleOrdinals();
-               moveHappened = true;
-               noOfAutoMoves++;
-            }
-         }
+      do {
+
+         boolean tableauMove = moveCardsToFoundation(getTableauPiles(), minval);
+         boolean freeCellMove = moveCardsToFoundation(getFreeCellPiles(), minval);
+
+         moveHappened = tableauMove || freeCellMove;
+
       } while (moveHappened);
+
       if (noOfAutoMoves > 0) {
          notifyChanges();
          validate();
